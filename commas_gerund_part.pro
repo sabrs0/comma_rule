@@ -25,7 +25,7 @@ predicates
 %TEST
 test_sentence(string)
 test_partc(string, list)
-find_partc(list, list)
+find_partc(list, list, list)
 %ÂÑÏÎÌÎÃ
 my_concat(list, string)
 split(string, list)
@@ -98,7 +98,9 @@ universal(S1, S2) :- union(S1, S2);
 	comma_rule([Head |[S| Tail] ], OutList) :- union([S|Tail], Tail), OutList = [Head |[","|[S | RecList]]], comma_rule(Tail, RecList), !.
 
 	comma_rule([Head |[S| Tail] ], OutList) :- union([S|Tail], Tail), OutList = [Head |[","|[S | RecList]]], comma_rule(Tail, RecList), !.
+	
 	comma_rule([Head|Tail], OutList) :- OutList = [Head|RecList], comma_rule(Tail, RecList).
+	
 	
 	%sentence([], []) :- !.
 	%sentence([Head|Tail], OutList) :- OutList = [Head|RecList], noun_phrase(Tail, RecList).
@@ -106,8 +108,8 @@ universal(S1, S2) :- union(S1, S2);
 	
 	%ÊÎÌÁÈÍÀÖÈÈ
 	adv_precombo(S1, S3) :- adv(S1, S2), adv(S2, S3).
-	adv_combo( S1, S3) :- pretext(S1, S2), adv_precombo(S2, S3);
-						pretext(S1, S2), adv(S2, S3);
+	adv_combo( S1, S3) :- pretext(S1, S2), adv(S2, S3);
+						pretext(S1, S2), adv_precombo(S2, S3);
 						adv(S1, S2), adv(S2, S3).
 						
 	adj_combo(S1, S3) :- pretext(S1, S2), adj(S2, S3);
@@ -170,6 +172,10 @@ universal(S1, S2) :- union(S1, S2);
 										verb(S_Start, S1,_,_), adv_precombo(S1, S_Stop);
 										adv(S_Start, S1), verb(S1, S_Stop,_,_);
 										verb(S_Start, S1,_,_), adv(S1, S_Stop);
+										verb(S_Start, S1,_,_), adj(S1, S_Stop);
+										adj(S_Start, S1), verb(S1, S_Stop,_,_);
+										verb(S_Start, S1,_,_), adj_combo(S1, S_Stop);
+										adj_combo(S_Start, S1), verb(S1, S_Stop,_,_);
 										verb(S_Start,  S_Stop,_,_).%, S_Stop = S_Start.
 										
 	
@@ -200,20 +206,20 @@ universal(S1, S2) :- union(S1, S2);
 	
 	%											
 	partc_ob(S_Start, S_Stop,Padezh,Num,Gender) :- 
-												noun_phrase(S_Start,S2,Padezh_Noun,Num_Noun,Gender_Noun),
+												noun_phrase(S_Start,S2,_,Num_Noun,_),
 												partc_phrase(S2,S_Stop,Padezh,Num,Gender), Num <> Num_Noun;
 												
-												noun_phrase(S_Start,S2,Padezh_Noun,Num_Noun,Gender_Noun),
+												noun_phrase(S_Start,S2,_,_,Gender_Noun),
 												partc_phrase(S2,S_Stop,Padezh,Num,Gender), Gender <> Gender_Noun;
 												
-												noun_phrase(S_Start,S2,Padezh_Noun,Num_Noun,Gender_Noun),
+												noun_phrase(S_Start,S2,Padezh_Noun,_,_),
 												partc_phrase(S2,S_Stop,Padezh,Num,Gender), Padezh <> Padezh_Noun;
 												
 												partc_phrase( S_Start, S2,Padezh,Num,Gender),
-												noun_phrase(S2,S_Stop,Padezh_Noun,Num_Noun,Gender_Noun), Num <> Num_Noun;
+												noun_phrase(S2,S_Stop,_,Num_Noun,_), Num <> Num_Noun;
 												
 												partc_phrase( S_Start, S2,Padezh,Num,Gender),
-												noun_phrase(S2,S_Stop,Padezh_Noun,Num_Noun,Gender_Noun), Gender <> Gender_Noun;
+												noun_phrase(S2,S_Stop,_,_,Gender_Noun), Gender <> Gender_Noun;
 												
 												partc_phrase( S_Start, S2,Padezh,Num,Gender),
 												noun_phrase(S2,S_Stop,Padezh_Noun,Num_Noun,Gender_Noun), Padezh <> Padezh_Noun;
@@ -249,8 +255,9 @@ universal(S1, S2) :- union(S1, S2);
 	%ÃĞÓÏÏÛ
 	%
 	noun_group(S_Start, S_Stop) :-  
-														noun_phrase(S_Start,[Head | [Head2 | Tail]],Padezh,Num,Gender),
-														partc_ob([Head | [", " |[Head2 | Tail]]], S_Stop,Padezh,Num,Gender);
+														
+														noun_phrase(S_Start, S2,Padezh,Num,Gender),
+														partc_ob(S2, S_Stop,Padezh,Num,Gender);
 														
 														partc_ob(S_Start, S2,Padezh,Num,Gender),
 														noun_phrase(S2, S_Stop,Padezh,Num,Gender);
@@ -409,6 +416,7 @@ universal(S1, S2) :- union(S1, S2);
 	verb(["óâàæàşò"| X], X,2,3).
 	%ÏĞÈËÀÃÀÒÅËÜÍÛÅ
 	adj(["Õîëîäíûé"| X], X).
+	adj(["íåïğèÿòíûì"| X], X).
 	%ÍÀĞÅ×Èß
 	adv(["âcåãäà"| X], X).
 	adv(["Ñåãîäíÿ"| X], X).
@@ -419,17 +427,22 @@ universal(S1, S2) :- union(S1, S2);
 	gerund(["çàãëóøêà"| X], X).
 		
 	
-	
+%TESTS	
+find_partc(S1, S3, Ans) :- 	noun_group(S1, S2), verb_group(S2, S3), noun_phrase(S1, [Head | Tail],_,_,_),
+														partc_ob([Head | Tail], Sn,_,_,_), verb_group(Sn, S3), Ans = Sn;
+						verb_group(S1, S2), noun_group(S2, S3), noun_phrase(S1, [Head | Tail],_,_,_),
+														partc_ob([Head | Tail], S3,_,_,_),  Ans = S1. 	
+
+test_partc(Str, Ans) :- split(Str, X), find_partc(X, [], Ans).
+
+
+
 sentence(S1, S3) :- 	noun_group(S1, S2), verb_group(S2, S3);
 						verb_group(S1, S2), noun_group(S2, S3).	
 
 test_sentence(Str) :- split(Str, X), sentence(X, []).
 
-find_partc([],[]) :-!.
-find_partc([Head|Tail], Ans) :- partc_ob([Head | Tail], [],_,_,_), Ans = Tail.
-find_partc([Head|Tail], Ans) :- find_partc(Tail, Ans).
 
-test_partc(Str, Ans) :- split(Str,X), find_partc(X, Ans).
 
 %solve(Str, RealAns) :- split(Str, X), comma_rule(X, Ans), my_concat(Ans, RealAns).
 
