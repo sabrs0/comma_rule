@@ -24,7 +24,7 @@ padezh = integer % 1-6
 predicates
 %TEST
 test_sentence(string)
-test_partc(string, list)
+test_partc(string, string)
 find_partc(list, list, list)
 %ВСПОМОГ
 my_concat(list, string)
@@ -63,10 +63,16 @@ verb_phrase(list, list)
 ger_ob(list, list)
 partc_ob(list, list,padezh, num, gender)
 %ГРУППЫ
-noun_group(list, list)
+noun_subgroup(list, list, padezh)
+noun_group(list, list, padezh)
+verb_subgroup(list, list)
 verb_group(list, list)
+
+gramm_base(list, list)
 %ПРАВИЛА
 comma_rule(list, list)
+comma_gerund(list, list, list, list)
+set_commas(list, list, list)
 %sentence(list, list)
 clauses
 
@@ -141,13 +147,21 @@ universal(S1, S2) :- union(S1, S2);
 										participle(S_Start, S2, Padezh,Num,Gender), adv_precombo(S2, S_Stop);
 										adv(S_Start, S2),  participle(S2, S_Stop, Padezh,Num,Gender);
 										participle(S_Start, S2, Padezh,Num,Gender), adv(S2, S_Stop);
-										pretext(S_Start, S2),  participle(S2, S_Stop, Padezh,Num,Gender).
+										pretext(S_Start, S2),  participle(S2, S_Stop, Padezh,Num,Gender);
+										participle(S_Start, S_Stop, Padezh, Num, Gender);
+										participle(S_Start, S2, Padezh, Num, Gender),  noun_phrase(S2,S_Stop,_,_,Gender_Noun), Gender <> Gender_Noun;
+										participle(S_Start, S2, Padezh, Num, Gender),  noun_phrase(S2,S_Stop,_,Num_Noun,_),  Num<> Num_Noun;
+										participle(S_Start, S2, Padezh, Num, Gender),  noun_phrase(S2,S_Stop,Padezh_Noun,_,_), Padezh <> Padezh_Noun;
+										noun_phrase(S_Start,S2,_,_,Gender_Noun), participle(S2, S_Stop, Padezh, Num, Gender),  Gender <> Gender_Noun;
+										noun_phrase(S_Start,S2,_,Num_Noun,_), participle(S2, S_Stop, Padezh, Num, Gender),  Num<> Num_Noun;
+										noun_phrase(S_Start,S2,Padezh_Noun,_,_), participle(S2, S_Stop, Padezh, Num, Gender), Padezh <> Padezh_Noun.
 	
 	%
 	ger_phrase(S_Start, S_Stop) :-   adv_precombo(S_Start, S2), gerund(S2, S_Stop);
 							gerund(S_Start, S2), adv_precombo(S2, S_Stop);
 							adv(S_Start, S2), gerund(S2, S_Stop);
-							gerund(S_Start, S2), adv(S2, S_Stop).
+							gerund(S_Start, S2), adv(S2, S_Stop);
+							gerund(S_Start, S_Stop).
 	%
 	noun_phrase(S_Start, S_Stop,Padezh,Num,Gender) :- 
 										adj_phrase(S_Start, S2), noun(S2, S_Stop, Padezh,Num,Gender);
@@ -185,27 +199,23 @@ universal(S1, S2) :- union(S1, S2);
 	%
 	ger_ob(S_Start, S_Stop) :- 
 								noun_phrase(S_Start, S2, _, _, _),
-								ger_phrase(S2,S_Stop);
+								ger_phrase(S2,S_Stop),!;
+								
 								
 								ger_phrase(S_Start, S2),
-								noun_phrase(S2,S_Stop, _, _, _);
-								
-								ger_phrase(S_Start,S_Stop);
-								
-								gerund(S_Start, S_Stop);%, S_Stop = S_Start;
+								noun_phrase(S2,S_Stop, _, _, _),!;
 								
 								mest_phrase(S_Start, S2, _, _, _),
-								ger_phrase(S2,S_Stop);
+								ger_phrase(S2,S_Stop),!;
+								
 								
 								ger_phrase(S_Start, S2),
-								mest_phrase(S2,S_Stop, _, _, _);
+								mest_phrase(S2,S_Stop, _, _, _),!;
+								 
+								ger_phrase(S_Start,S_Stop).
 								
-								ger_phrase(S_Start,S_Stop);
-								
-								gerund(S_Start, S_Stop).%, S_Stop = S_Start.
-	
 	%											
-	partc_ob(S_Start, S_Stop,Padezh,Num,Gender) :- 
+	partc_ob(S_Start, S_Stop,Padezh,Num,Gender) :-
 												noun_phrase(S_Start,S2,_,Num_Noun,_),
 												partc_phrase(S2,S_Stop,Padezh,Num,Gender), Num <> Num_Noun;
 												
@@ -222,7 +232,7 @@ universal(S1, S2) :- union(S1, S2);
 												noun_phrase(S2,S_Stop,_,_,Gender_Noun), Gender <> Gender_Noun;
 												
 												partc_phrase( S_Start, S2,Padezh,Num,Gender),
-												noun_phrase(S2,S_Stop,Padezh_Noun,Num_Noun,Gender_Noun), Padezh <> Padezh_Noun;
+												noun_phrase(S2,S_Stop,Padezh_Noun,_,_), Padezh <> Padezh_Noun;
 												
 												partc_phrase(S_Start, S_Stop,Padezh,Num,Gender);
 												 
@@ -245,24 +255,18 @@ universal(S1, S2) :- union(S1, S2);
 												mest_phrase(S2,S_Stop,Padezh_Noun,Num_Noun,Gender_Noun), Gender <> Gender_Noun;
 												
 												partc_phrase( S_Start, S2,Padezh, Num,Gender),
-												mest_phrase(S2,S_Stop,Padezh_Noun,Num_Noun,Gender_Noun), Padezh <> Padezh_Noun;
+												mest_phrase(S2,S_Stop,Padezh_Noun,Num_Noun,Gender_Noun), Padezh <> Padezh_Noun.
 												
-																								
-												partc_phrase(S_Start, S_Stop,Padezh,Num,Gender);
-												 
-												participle(S_Start, S_Stop,Padezh, Num,Gender).%, S_Stop = S_Start.
-
-	%ГРУППЫ
-	%
-	noun_group(S_Start, S_Stop) :-  
+	%ПОДГРУППЫ
+	noun_subgroup(S_Start, S_Stop, Padezh) :-  
 														
-														noun_phrase(S_Start, S2,Padezh,Num,Gender),
+														noun_phrase(S_Start, S2,1,Num,Gender),
 														partc_ob(S2, S_Stop,Padezh,Num,Gender);
 														
 														partc_ob(S_Start, S2,Padezh,Num,Gender),
 														noun_phrase(S2, S_Stop,Padezh,Num,Gender);
 														
-														noun_phrase(S_Start, S_Stop,_,_,_);
+														noun_phrase(S_Start, S_Stop,Padezh,Num,Gender);
 														
 														mest_phrase(S_Start,S2,Padezh,Num,Gender),
 														partc_ob(S2, S_Stop,Padezh, Num,Gender);
@@ -270,16 +274,28 @@ universal(S1, S2) :- union(S1, S2);
 														partc_ob(S_Start, S2,Padezh, Num,Gender),
 														mest_phrase(S2, S_Stop,Padezh,Num,Gender);
 														
-														mest_phrase(S_Start, S_Stop,_,_,_).
-														
+														mest_phrase(S_Start, S_Stop,Padezh,Num,Gender).
+		
+	%ГРУППЫ
 	%
-	%verb_group(Main_Verb, Main_Noun, Main_Ger, Start, Stop) :- 	verb_phrase(_, _, Main_Verb, Start_Verb, Stop_Verb), 
-	%														noun_phrase(_, _, _, _, Main_Noun, Start_Noun, Stop_Noun),
-																												
-	verb_group(S_Start, S_Stop) :- 	verb_phrase(S_Start, S2), noun_phrase(S2, S_Stop,_,_,_);
-								noun_phrase(S_Start, S2,_,_,_), verb_phrase(S2, S_Stop);
-								verb_phrase(S_Start, S_Stop).		
+	noun_group(S_Start, S_Stop, Padezh) :-  
+														
+														
+														noun_subgroup(S_Start, S_Stop, Padezh).
+														%noun_phrase(S_Start, S2,_,_,_), noun_subgroup(S2, S_Stop);
+														%mest_phrase(S_Start, S2,_,_,_), noun_subgroup(S2, S_Stop).
+														
+																					
+	verb_subgroup(S_Start, S_Stop) :- 	verb_phrase(S_Start, S2), noun_group(S2, S_Stop, Padezh), Padezh <> 1;%noun_phrase(S2, S_Stop,_,_,_);
+								noun_group(S_Start, S2,Padezh), verb_phrase(S2, S_Stop), Padezh <> 1;
+								verb_phrase(S_Start, S_Stop).
+	verb_group(S_Start, S_Stop) :- 	verb_subgroup(S_Start, S2), ger_ob(S2, S_Stop);
+								ger_ob(S_Start, S2), verb_subgroup(S2, S_Stop);
+								verb_subgroup(S_Start, S_Stop).
 	
+	
+	gramm_base(S_Start, S_Stop) :- noun_group(S_Start, S2, 1), verb_group(S2, S_Stop);
+									verb_group(S_Start, S2), noun_group( S2, S_Stop,1);
 /*****************************************************************************
 
 		СЛОВАРЬ
@@ -401,44 +417,62 @@ universal(S1, S2) :- union(S1, S2);
 
 
 	%МЕСТОИМЕНИЯ
-	mest(["заглушка"| X], X, 1,2,3).
+	mest(["всё"| X], X, 4,0,0).
 	%СУЩЕСТВИТЕЛЬНЫЕ
-	noun(["Быки"| X], X, 1,1,1).
+	noun(["быки"| X], X, 1,1,1).
 	noun(["волки"| X], X, 1,1,1).
 	noun(["врагами"| X], X, 5,1,1).
 	noun(["друг друга"| X], X, 2,1,1).
 	noun(["дождь"| X], X, 1,0,1).
+	noun(["мальчик"| X], X, 1,0,1).
+	noun(["кабинете"| X], X, 6,0,1).
+	noun(["мультик"| X], X, 4,0,1).
 	noun(["ночи"| X], X, 2,0,2).	
 	%ГЛАГОЛЫ
 	verb(["не любят"|X],X,2,3).
 	verb(["были"| X], X, 2,3).
 	verb(["был"| X], X, 2,3).
+	verb(["был"| X], X, 2,3).
+	verb(["выглядел"| X], X, 2,3).
 	verb(["уважают"| X], X,2,3).
 	%ПРИЛАГАТЕЛЬНЫЕ
-	adj(["Холодный"| X], X).
+	adj(["холодный"| X], X).
 	adj(["неприятным"| X], X).
 	%НАРЕЧИЯ
 	adv(["вcегда"| X], X).
-	adv(["Сегодня"| X], X).
+	adv(["сегодня"| X], X).
+	adv(["спокойно"| X], X).	
 	%ПРИЧАСТИЯ
 	participle(["шедший"| X], X,1,0,1).
-	
+	participle(["затмившей"| X], X,2,0,2).
+	participle(["смотрящий"| X], X,1,0,1).
 	%ДЕЕПРИЧАСТИЯ
-	gerund(["заглушка"| X], X).
+	gerund(["смотря"| X], X).
 		
-	
-%TESTS	
-find_partc(S1, S3, Ans) :- 	noun_group(S1, S2), verb_group(S2, S3), noun_phrase(S1, [Head | Tail],_,_,_),
-														partc_ob([Head | Tail], Sn,_,_,_), verb_group(Sn, S3), Ans = Sn;
-						verb_group(S1, S2), noun_group(S2, S3), noun_phrase(S1, [Head | Tail],_,_,_),
-														partc_ob([Head | Tail], S3,_,_,_),  Ans = S1. 	
+%ЛИЧНЫЕ МЕСТОИМЕНИЯ - ПРАВИЛО mest, ОСТАЛЬНЫЕ МЕСТОИМЕНИЯ - ПРЕДИКАТ adj
+set_commas([], _, []) :- !.
+set_commas([H1 | T1], [Start, Stop], Ans) :- H1 = Start, Ans = ["," | [H1 | RecAns]], set_commas(T1, [Start, Stop], RecAns).  
+set_commas([H1 | T1], [Start, Stop], Ans) :- H1 = Stop, Ans = ["," | [H1 | RecAns]], set_commas(T1, [Start, Stop], RecAns).
+set_commas([H1 | T1], [Start, Stop], Ans) :- Ans = [H1 | RecAns], set_commas(T1, [Start, Stop], RecAns).
 
-test_partc(Str, Ans) :- split(Str, X), find_partc(X, [], Ans).
+comma_gerund([H1 | T1], S3, Borders, Ans) :- find_partc([H1 | T1], S3, Borders),  set_commas([H1 | T1], Borders, Ans).
+%TESTS
+find_partc([H1 | T1], S3, Ans) :-	%noun_group([H1 | T1], [H2 | T2], 1),  verb_group([H2 | T2], S3)  ,  verb_subgroup([H2 | T2], [H3|T3]), ger_ob([H3 | T3], S3), Ans = [H3, " " ];
+								noun_group([H1 | T1], [H2 | T2], 1),  verb_group([H2 | T2], S3)  ,  ger_ob([H2 | T2], [H3 | T3]), verb_subgroup([H3 | T3], S3), Ans = [H2, H3];
+		
+								verb_group([H1 | T1], [H2| T2]), noun_group([H2| T2], S3, 1),  verb_subgroup([H1 | T1], [H3 | T3]), ger_ob([H3 | T3], S2),                  Ans = [H3, H2];
+								%verb_group([H1 | T1], S2), noun_group(S2, S3, 1),  ger_ob([H1 | T1], [H3 | T3]), verb_subgroup([H3 | T3], S2),                   Ans = ["", H3];
+								
+								ger_ob([H1 | T1], [H2|T2]), 		gramm_base([H2|T2], S3), Ans = ["", H2 ];
+								
+								gramm_base([H1 | T1], [H2 | T2]), ger_ob( [H2|T2], S3), Ans = [H2, ""].
+
+test_partc(Str, Ans) :- split(Str, X),  comma_gerund(X, [], Borders, AnsList), my_concat(AnsList, Ans).
 
 
 
-sentence(S1, S3) :- 	noun_group(S1, S2), verb_group(S2, S3);
-						verb_group(S1, S2), noun_group(S2, S3).	
+sentence(S1, S3) :- 	noun_group(S1, S2, 1), verb_group(S2, S3);
+						verb_group(S1, S2), noun_group(S2, S3, 1).	
 
 test_sentence(Str) :- split(Str, X), sentence(X, []).
 
@@ -447,7 +481,7 @@ test_sentence(Str) :- split(Str, X), sentence(X, []).
 %solve(Str, RealAns) :- split(Str, X), comma_rule(X, Ans), my_concat(Ans, RealAns).
 
 goal
-	test_partc("Холодный дождь шедший с ночи был неприятным", Ans).
+	test_partc("мальчик  выглядел смотря мультик неприятным ", Ans).
 	%test_sentence("Холодный дождь шедший с ночи был неприятным").
 	%solve("Быки и волки всегда были врагами которые не любят друг друга но уважают", Ans).
 	
