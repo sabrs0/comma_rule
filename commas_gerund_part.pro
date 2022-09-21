@@ -25,7 +25,7 @@ predicates
 %TEST
 test_sentence(string)
 test_partc(string, string)
-find_partc(list, list, list)
+find_gerund(list, list, list)
 %ВСПОМОГ
 my_concat(list, string)
 split(string, list)
@@ -34,7 +34,7 @@ sentence(list, list)
 %solve(string, string)
 %ЧАСТИ РЕЧИ
 union(list, list)
-union_unq(list, list)
+%union_unq(list, list)
 noun(list, list, padezh, num, gender)
 mest(list, list, padezh, num, gender)
 verb(list, list, num, gender)
@@ -280,7 +280,8 @@ universal(S1, S2) :- union(S1, S2);
 	%
 	noun_group(S_Start, S_Stop, Padezh) :-  
 														
-														
+														noun_subgroup(S_Start, S2, Padezh), noun_subgroup(S2, S_Stop, Padezh);
+														noun_subgroup(S_Start, S2, Padezh), union(S2, S3), noun_subgroup(S3, S_Stop, Padezh);
 														noun_subgroup(S_Start, S_Stop, Padezh).
 														%noun_phrase(S_Start, S2,_,_,_), noun_subgroup(S2, S_Stop);
 														%mest_phrase(S_Start, S2,_,_,_), noun_subgroup(S2, S_Stop).
@@ -288,6 +289,8 @@ universal(S1, S2) :- union(S1, S2);
 																					
 	verb_subgroup(S_Start, S_Stop) :- 	verb_phrase(S_Start, S2), noun_group(S2, S_Stop, Padezh), Padezh <> 1;%noun_phrase(S2, S_Stop,_,_,_);
 								noun_group(S_Start, S2,Padezh), verb_phrase(S2, S_Stop), Padezh <> 1;
+								verb_phrase(S_Start, S2), verb_phrase(S2, S_Stop);
+								verb_phrase(S_Start, S2), union(S2, S3), verb_phrase(S3, S_Stop);
 								verb_phrase(S_Start, S_Stop).
 	verb_group(S_Start, S_Stop) :- 	verb_subgroup(S_Start, S2), ger_ob(S2, S_Stop);
 								ger_ob(S_Start, S2), verb_subgroup(S2, S_Stop);
@@ -409,9 +412,9 @@ universal(S1, S2) :- union(S1, S2);
 	union(["или"| X], X).
 	union(["и"| X], X).
 	
-	union_unq(["или"| X], X).
-	union_unq(["и"| X], X).
-	union_unq(["да"| X], X).
+	%union_unq(["или"| X], X).
+	%union_unq(["и"| X], X).
+	%union_unq(["да"| X], X).
 
 
 
@@ -434,6 +437,7 @@ universal(S1, S2) :- union(S1, S2);
 	verb(["был"| X], X, 2,3).
 	verb(["был"| X], X, 2,3).
 	verb(["выглядел"| X], X, 2,3).
+	verb(["смотрелся"| X], X, 2,3).
 	verb(["уважают"| X], X,2,3).
 	%ПРИЛАГАТЕЛЬНЫЕ
 	adj(["холодный"| X], X).
@@ -455,9 +459,9 @@ set_commas([H1 | T1], [Start, Stop], Ans) :- H1 = Start, Ans = ["," | [H1 | RecA
 set_commas([H1 | T1], [Start, Stop], Ans) :- H1 = Stop, Ans = ["," | [H1 | RecAns]], set_commas(T1, [Start, Stop], RecAns).
 set_commas([H1 | T1], [Start, Stop], Ans) :- Ans = [H1 | RecAns], set_commas(T1, [Start, Stop], RecAns).
 
-comma_gerund([H1 | T1], S3, Borders, Ans) :- find_partc([H1 | T1], S3, Borders),  set_commas([H1 | T1], Borders, Ans).
+comma_gerund([H1 | T1], S3, Borders, Ans) :- find_gerund([H1 | T1], S3, Borders),  set_commas([H1 | T1], Borders, Ans).
 %TESTS
-find_partc([H1 | T1], S3, Ans) :-	%noun_group([H1 | T1], [H2 | T2], 1),  verb_group([H2 | T2], S3)  ,  verb_subgroup([H2 | T2], [H3|T3]), ger_ob([H3 | T3], S3), Ans = [H3, " " ];
+find_gerund([H1 | T1], S3, Ans) :-	%noun_group([H1 | T1], [H2 | T2], 1),  verb_group([H2 | T2], S3)  ,  verb_subgroup([H2 | T2], [H3|T3]), ger_ob([H3 | T3], S3), Ans = [H3, " " ];
 								noun_group([H1 | T1], [H2 | T2], 1),  verb_group([H2 | T2], S3)  ,  ger_ob([H2 | T2], [H3 | T3]), verb_subgroup([H3 | T3], S3), Ans = [H2, H3];
 		
 								verb_group([H1 | T1], [H2| T2]), noun_group([H2| T2], S3, 1),  verb_subgroup([H1 | T1], [H3 | T3]), ger_ob([H3 | T3], S2),                  Ans = [H3, H2];
@@ -465,11 +469,10 @@ find_partc([H1 | T1], S3, Ans) :-	%noun_group([H1 | T1], [H2 | T2], 1),  verb_gr
 								
 								ger_ob([H1 | T1], [H2|T2]), 		gramm_base([H2|T2], S3), Ans = ["", H2 ];
 								
+								
 								gramm_base([H1 | T1], [H2 | T2]), ger_ob( [H2|T2], S3), Ans = [H2, ""].
 
 test_partc(Str, Ans) :- split(Str, X),  comma_gerund(X, [], Borders, AnsList), my_concat(AnsList, Ans).
-
-
 
 sentence(S1, S3) :- 	noun_group(S1, S2, 1), verb_group(S2, S3);
 						verb_group(S1, S2), noun_group(S2, S3, 1).	
@@ -481,7 +484,7 @@ test_sentence(Str) :- split(Str, X), sentence(X, []).
 %solve(Str, RealAns) :- split(Str, X), comma_rule(X, Ans), my_concat(Ans, RealAns).
 
 goal
-	test_partc("мальчик  выглядел смотря мультик неприятным ", Ans).
+	test_partc("мальчик и дождь выглядел смотря мультик неприятным ", Ans).
 	%test_sentence("Холодный дождь шедший с ночи был неприятным").
 	%solve("Быки и волки всегда были врагами которые не любят друг друга но уважают", Ans).
 	
