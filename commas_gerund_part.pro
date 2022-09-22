@@ -21,11 +21,15 @@ face = integer
 num = integer % 0 - ед, 1 - мн.
 gender = integer % 0 - неопределен, 1 - м, 2 - ж.
 padezh = integer % 1-6
+div_lists = list*
+len = integer
+eq = integer
 predicates
 %TEST
 test_sentence(string)
 test_partc(string, string)
-find_gerund(list, list, list)
+find_gerund(list, list, div_lists)
+find_gramm_bases(list, list, div_lists)
 %ВСПОМОГ
 my_concat(list, string)
 split(string, list)
@@ -71,9 +75,12 @@ verb_group(list, list)
 gramm_base(list, list)
 %ПРАВИЛА
 comma_rule(list, list)
-comma_gerund(list, list, list, list)
-set_commas(list, list, list)
+comma_gerund(list, list, list)
+set_commas(list, div_lists, list)
 %sentence(list, list)
+%СПИСКИ
+leng(list, len)
+is_equal(list, list, eq)
 clauses
 
 my_concat([], "") :-!.
@@ -84,7 +91,17 @@ split(S, [H|T]) :-
   !,
   split(R, T).
 split(_, []).
-%чтобы найти соединение частей речи в оборотах(возможно надо будет переписать для каждой части речи с отсечением)
+
+
+%ОПЕРАЦИИ СО СПИСКАМИ
+leng([], 0):-!.
+leng([","|Tail], Length):- leng(Tail, Length),!.
+  leng([_Head|Tail], Length):-
+    leng(Tail, TailLength),
+    Length = TailLength + 1.
+  is_equal(L1, L2, X) :- leng(L1, Len1), leng(L2, Len2), Len1 = Len2, X = 1. 
+  is_equal(L1, L2, X) :- leng(L1, Len1), leng(L2, Len2), Len1 <> Len2, X = 0.
+%чтобы найти соединение частей речи в оборотах(возможно надо будет переписать для каждой части речи с отсечением (а нет, не понадобилось :)))) )
 universal(S1, S2) :- union(S1, S2);
 					noun(S1, S2,_,_,_);
 					verb(S1, S2,_,_);
@@ -280,8 +297,8 @@ universal(S1, S2) :- union(S1, S2);
 	%
 	noun_group(S_Start, S_Stop, Padezh) :-  
 														
-														noun_subgroup(S_Start, S2, Padezh), noun_subgroup(S2, S_Stop, Padezh);
-														noun_subgroup(S_Start, S2, Padezh), union(S2, S3), noun_subgroup(S3, S_Stop, Padezh);
+														noun_subgroup(S_Start, S2, Padezh), noun_subgroup(S2, S_Stop, Padezh),!;
+														noun_subgroup(S_Start, S2, Padezh), union(S2, S3), noun_subgroup(S3, S_Stop, Padezh),!;
 														noun_subgroup(S_Start, S_Stop, Padezh).
 														%noun_phrase(S_Start, S2,_,_,_), noun_subgroup(S2, S_Stop);
 														%mest_phrase(S_Start, S2,_,_,_), noun_subgroup(S2, S_Stop).
@@ -430,6 +447,7 @@ universal(S1, S2) :- union(S1, S2);
 	noun(["мальчик"| X], X, 1,0,1).
 	noun(["кабинете"| X], X, 6,0,1).
 	noun(["мультик"| X], X, 4,0,1).
+	noun(["ветер"| X], X, 1,0,1).
 	noun(["ночи"| X], X, 2,0,2).	
 	%ГЛАГОЛЫ
 	verb(["не любят"|X],X,2,3).
@@ -439,6 +457,7 @@ universal(S1, S2) :- union(S1, S2);
 	verb(["выглядел"| X], X, 2,3).
 	verb(["смотрелся"| X], X, 2,3).
 	verb(["уважают"| X], X,2,3).
+	verb(["дул"| X], X,2,3).
 	%ПРИЛАГАТЕЛЬНЫЕ
 	adj(["холодный"| X], X).
 	adj(["неприятным"| X], X).
@@ -454,25 +473,44 @@ universal(S1, S2) :- union(S1, S2);
 	gerund(["смотря"| X], X).
 		
 %ЛИЧНЫЕ МЕСТОИМЕНИЯ - ПРАВИЛО mest, ОСТАЛЬНЫЕ МЕСТОИМЕНИЯ - ПРЕДИКАТ adj
-set_commas([], _, []) :- !.
-set_commas([H1 | T1], [Start, Stop], Ans) :- H1 = Start, Ans = ["," | [H1 | RecAns]], set_commas(T1, [Start, Stop], RecAns).  
-set_commas([H1 | T1], [Start, Stop], Ans) :- H1 = Stop, Ans = ["," | [H1 | RecAns]], set_commas(T1, [Start, Stop], RecAns).
-set_commas([H1 | T1], [Start, Stop], Ans) :- Ans = [H1 | RecAns], set_commas(T1, [Start, Stop], RecAns).
+set_commas([], _, []) :- ! .
+set_commas([H1 | T1], [H2|T2], Ans) :-   is_equal([H1 | T1], H2, X), X = 1, Ans = ["," | [H1 | RecAns]], set_commas(T1, T2, RecAns). 
+set_commas([H1 | T1], [], Ans) :- Ans =  [H1 | RecAns], set_commas(T1, [], RecAns).
+set_commas([H1 | T1], [H2|T2], Ans) :-   Ans =  [H1 | RecAns], is_equal([H1 | T1], H2, X), X = 0, set_commas(T1, [H2|T2], RecAns).
 
-comma_gerund([H1 | T1], S3, Borders, Ans) :- find_gerund([H1 | T1], S3, Borders),  set_commas([H1 | T1], Borders, Ans).
+comma_gerund([H1 | T1], S3, RealAns) :- find_gerund([H1 | T1], S3, Borders),  set_commas([H1 | T1], Borders, Ans), find_gramm_bases([H1 | T1], S3, Borders), set_commas(Ans, Borders, RealAns),!.
+comma_gerund([H1 | T1], S3, Ans) :- find_gerund([H1 | T1], S3, Borders), set_commas([H1 | T1], Borders, Ans),!.
+comma_gerund([H1 | T1], S3, RealAns) :-  find_gramm_bases([H1 | T1], S3, Borders), set_commas([H1 | T1], Borders, RealAns).
 %TESTS
-find_gerund([H1 | T1], S3, Ans) :-	%noun_group([H1 | T1], [H2 | T2], 1),  verb_group([H2 | T2], S3)  ,  verb_subgroup([H2 | T2], [H3|T3]), ger_ob([H3 | T3], S3), Ans = [H3, " " ];
-								noun_group([H1 | T1], [H2 | T2], 1),  verb_group([H2 | T2], S3)  ,  ger_ob([H2 | T2], [H3 | T3]), verb_subgroup([H3 | T3], S3), Ans = [H2, H3];
+find_gerund([H1 | T1], S3, ListAns) :-	%noun_group([H1 | T1], [H2 | T2], 1),  verb_group([H2 | T2], S3)  ,  verb_subgroup([H2 | T2], [H3|T3]), ger_ob([H3 | T3], S3), Ans = [H3, " " ];
+								noun_group([H1 | T1], [H2 | T2], 1),  verb_group([H2 | T2], S3)  ,  ger_ob([H2 | T2], [H3 | T3]), verb_subgroup([H3 | T3], S3), ListAns = [[H2 | T2], [H3 | T3]];
 		
-								verb_group([H1 | T1], [H2| T2]), noun_group([H2| T2], S3, 1),  verb_subgroup([H1 | T1], [H3 | T3]), ger_ob([H3 | T3], S2),                  Ans = [H3, H2];
+								verb_group([H1 | T1], [H2| T2]), noun_group([H2| T2], S3, 1),  verb_subgroup([H1 | T1], [H3 | T3]), ger_ob([H3 | T3], S2),  ListAns = [[H3 | T3], [H2 | T2]];
 								%verb_group([H1 | T1], S2), noun_group(S2, S3, 1),  ger_ob([H1 | T1], [H3 | T3]), verb_subgroup([H3 | T3], S2),                   Ans = ["", H3];
 								
-								ger_ob([H1 | T1], [H2|T2]), 		gramm_base([H2|T2], S3), Ans = ["", H2 ];
+								ger_ob([H1 | T1], [H2|T2]), 		gramm_base([H2|T2], S3), ListAns = [[H2 | T2]];
 								
 								
-								gramm_base([H1 | T1], [H2 | T2]), ger_ob( [H2|T2], S3), Ans = [H2, ""].
+								gramm_base([H1 | T1], [H2 | T2]), ger_ob( [H2|T2], S3), ListAns = [[H2|T2]],!;
+								gramm_base([H1 | T1], S3), ListAns = [].
+								%ger_ob([H1 | T1], [H2|T2]),gramm_base([H2|T2], Sn), gramm_base(Sn, S3), ListAns = [[H2 | T2]];
+								%gramm_base([H1 | T1],[H2|T2]), ger_ob([H2|T2], [H3|T3]), gramm_base([H3|T3], S3), ListAns = [[H2 | T2], [H3|T3]];
 
-test_partc(Str, Ans) :- split(Str, X),  comma_gerund(X, [], Borders, AnsList), my_concat(AnsList, Ans).
+								%gramm_base([H1 | T1], Sn), gramm_base(Sn, [H1 | T1]), ger_ob([H1 | T1], S3), ListAns = [[H1 | T1]].
+find_gramm_bases(S1, S3, ListAns) :-   gramm_base(S1, S3), find_gerund([H1 | T1], S3, ListAns);
+								%gramm_base(S1, [H2|T2]),    ger_ob([H2|T2], [H3|T3]), pretext([H3 | T3], S2 ), union(S2, S21 ), gramm_base(S21,S3), ListAns = [[H3 | T3]],!;
+								gramm_base(S1, [H3 | T3]),     pretext([H3 | T3], S2 ), union(S2, S21 ), gramm_base(S21,S3), ListAns = [[H3 | T3]],!;
+								
+								%gramm_base(S1, [H2|T2]),    ger_ob([H2|T2], [H3|T3]), union([H3 | T3], S2 ), union(S2, S21 ) ,gramm_base(S21,S3), ListAns = [[H3 | T3]],!;
+								gramm_base(S1, [H3 | T3]),     union([H3 | T3], S2 ), union(S2, S21 ) ,gramm_base(S21,S3), ListAns = [[H3 | T3]],!;
+								
+								%gramm_base(S1, [H2|T2]),    ger_ob([H2|T2], [H3|T3]), union([H3 | T3], S2 ), gramm_base(S2,S3), ListAns = [[H3 | T3]],!;
+								gramm_base(S1, [H3 | T3]),     union([H3 | T3], S2 ), gramm_base(S2,S3), ListAns = [[H3 | T3]],!;
+								
+								%gramm_base(S1, [H1 | T1]), ger_ob([H1|T1], [H3|T3]), gramm_base([H3 | T3],S3), ListAns = [[H3 | T3]],!;
+								gramm_base(S1, [H2 | T2]), gramm_base([H2 | T2],S3), ListAns = [[H2 | T2]].
+
+test_partc(Str, Ans) :- split(Str, X),  comma_gerund(X, [], AnsList),  my_concat(AnsList, Ans).
 
 sentence(S1, S3) :- 	noun_group(S1, S2, 1), verb_group(S2, S3);
 						verb_group(S1, S2), noun_group(S2, S3, 1).	
@@ -484,7 +522,7 @@ test_sentence(Str) :- split(Str, X), sentence(X, []).
 %solve(Str, RealAns) :- split(Str, X), comma_rule(X, Ans), my_concat(Ans, RealAns).
 
 goal
-	test_partc("мальчик и дождь выглядел смотря мультик неприятным ", Ans).
+	test_partc("мальчик и дождь  выглядел смотря мультик неприятным и ветер дул", Ans).
 	%test_sentence("Холодный дождь шедший с ночи был неприятным").
 	%solve("Быки и волки всегда были врагами которые не любят друг друга но уважают", Ans).
 	
