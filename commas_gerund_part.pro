@@ -29,7 +29,7 @@ predicates
 test_sentence(string)
 test_partc(string, string)
 find_gerund(list, list, div_lists)
-find_gramm_bases(list, list, div_lists)
+find_gramm_bases(list, list, list)
 %ВСПОМОГ
 my_concat(list, string)
 split(string, list)
@@ -38,7 +38,6 @@ sentence(list, list)
 %solve(string, string)
 %ЧАСТИ РЕЧИ
 union(list, list)
-%union_unq(list, list)
 noun(list, list, padezh, num, gender)
 mest(list, list, padezh, num, gender)
 verb(list, list, num, gender)
@@ -75,7 +74,7 @@ verb_group(list, list)
 gramm_base(list, list)
 %ПРАВИЛА
 comma_rule(list, list)
-comma_gerund(list, list, list)
+%comma_gerund(list, list, list)
 set_commas(list, div_lists, list)
 %sentence(list, list)
 %СПИСКИ
@@ -478,39 +477,42 @@ set_commas([H1 | T1], [H2|T2], Ans) :-   is_equal([H1 | T1], H2, X), X = 1, Ans 
 set_commas([H1 | T1], [], Ans) :- Ans =  [H1 | RecAns], set_commas(T1, [], RecAns).
 set_commas([H1 | T1], [H2|T2], Ans) :-   Ans =  [H1 | RecAns], is_equal([H1 | T1], H2, X), X = 0, set_commas(T1, [H2|T2], RecAns).
 
-comma_gerund([H1 | T1], S3, RealAns) :- find_gerund([H1 | T1], S3, Borders),  set_commas([H1 | T1], Borders, Ans), find_gramm_bases([H1 | T1], S3, Borders), set_commas(Ans, Borders, RealAns),!.
-comma_gerund([H1 | T1], S3, Ans) :- find_gerund([H1 | T1], S3, Borders), set_commas([H1 | T1], Borders, Ans),!.
-comma_gerund([H1 | T1], S3, RealAns) :-  find_gramm_bases([H1 | T1], S3, Borders), set_commas([H1 | T1], Borders, RealAns).
+%comma_gerund([H1 | T1], S3, RealAns) :- find_gerund([H1 | T1], S3, Borders),  set_commas([H1 | T1], Borders, Ans), find_gramm_bases([H1 | T1], S3, Borders), set_commas(Ans, Borders, RealAns),!.
+%comma_gerund([H1 | T1], S3, Ans) :- find_gerund([H1 | T1], S3, Borders), set_commas([H1 | T1], Borders, Ans),!.
+%comma_gerund([H1 | T1], S3, RealAns) :-  find_gramm_bases([H1 | T1], S3, Borders), set_commas([H1 | T1], Borders, RealAns).
 %TESTS
-find_gerund([H1 | T1], S3, ListAns) :-	%noun_group([H1 | T1], [H2 | T2], 1),  verb_group([H2 | T2], S3)  ,  verb_subgroup([H2 | T2], [H3|T3]), ger_ob([H3 | T3], S3), Ans = [H3, " " ];
-								noun_group([H1 | T1], [H2 | T2], 1),  verb_group([H2 | T2], S3)  ,  ger_ob([H2 | T2], [H3 | T3]), verb_subgroup([H3 | T3], S3), ListAns = [[H2 | T2], [H3 | T3]];
+find_gerund([H1 | T1], S3, ListAns) :-	noun_group([H1 | T1], [H2 | T2], 1),  verb_group([H2 | T2], S3)  ,  ger_ob([H2 | T2], [H3 | T3]), verb_subgroup([H3 | T3], S3), ListAns = [[H2 | T2], [H3 | T3]];
 		
 								verb_group([H1 | T1], [H2| T2]), noun_group([H2| T2], S3, 1),  verb_subgroup([H1 | T1], [H3 | T3]), ger_ob([H3 | T3], S2),  ListAns = [[H3 | T3], [H2 | T2]];
-								%verb_group([H1 | T1], S2), noun_group(S2, S3, 1),  ger_ob([H1 | T1], [H3 | T3]), verb_subgroup([H3 | T3], S2),                   Ans = ["", H3];
 								
 								ger_ob([H1 | T1], [H2|T2]), 		gramm_base([H2|T2], S3), ListAns = [[H2 | T2]];
 								
 								
 								gramm_base([H1 | T1], [H2 | T2]), ger_ob( [H2|T2], S3), ListAns = [[H2|T2]],!;
 								gramm_base([H1 | T1], S3), ListAns = [].
-								%ger_ob([H1 | T1], [H2|T2]),gramm_base([H2|T2], Sn), gramm_base(Sn, S3), ListAns = [[H2 | T2]];
-								%gramm_base([H1 | T1],[H2|T2]), ger_ob([H2|T2], [H3|T3]), gramm_base([H3|T3], S3), ListAns = [[H2 | T2], [H3|T3]];
-
-								%gramm_base([H1 | T1], Sn), gramm_base(Sn, [H1 | T1]), ger_ob([H1 | T1], S3), ListAns = [[H1 | T1]].
-find_gramm_bases(S1, S3, ListAns) :-   gramm_base(S1, S3), find_gerund([H1 | T1], S3, ListAns);
-								%gramm_base(S1, [H2|T2]),    ger_ob([H2|T2], [H3|T3]), pretext([H3 | T3], S2 ), union(S2, S21 ), gramm_base(S21,S3), ListAns = [[H3 | T3]],!;
-								gramm_base(S1, [H3 | T3]),     pretext([H3 | T3], S2 ), union(S2, S21 ), gramm_base(S21,S3), ListAns = [[H3 | T3]],!;
 								
+find_gramm_bases(S1, S3, Ans) :-   
+								%gramm_base(S1, [H2|T2]),    ger_ob([H2|T2], [H3|T3]), pretext([H3 | T3], S2 ), union(S2, S21 ), gramm_base(S21,S3), ListAns = [[H3 | T3]],!;
+								gramm_base(S1, [H3 | T3]),     pretext([H3 | T3], S2 ), union(S2, S21 ), gramm_base(S21,S3), ListAns = [[H3 | T3]],  set_commas(S1, ListAns, Ans1),
+								find_gerund(S1, [H3 | T3], ListAns2), set_commas(Ans1, ListAns2, Ans2),															
+								find_gerund(S21,S3, ListAns3), set_commas(Ans2, ListAns3, Ans),!;
 								%gramm_base(S1, [H2|T2]),    ger_ob([H2|T2], [H3|T3]), union([H3 | T3], S2 ), union(S2, S21 ) ,gramm_base(S21,S3), ListAns = [[H3 | T3]],!;
-								gramm_base(S1, [H3 | T3]),     union([H3 | T3], S2 ), union(S2, S21 ) ,gramm_base(S21,S3), ListAns = [[H3 | T3]],!;
+								gramm_base(S1, [H3 | T3]),     union([H3 | T3], S2 ), union(S2, S21 ) ,gramm_base(S21,S3), ListAns = [[H3 | T3]],  set_commas(S1, ListAns, Ans1),
+								find_gerund(S1, [H3 | T3], ListAns2), set_commas(Ans1, ListAns2, Ans2),															
+								find_gerund(S21,S3, ListAns3), set_commas(Ans2, ListAns3, Ans),!;
 								
 								%gramm_base(S1, [H2|T2]),    ger_ob([H2|T2], [H3|T3]), union([H3 | T3], S2 ), gramm_base(S2,S3), ListAns = [[H3 | T3]],!;
-								gramm_base(S1, [H3 | T3]),     union([H3 | T3], S2 ), gramm_base(S2,S3), ListAns = [[H3 | T3]],!;
+								gramm_base(S1, [H3 | T3]),     union([H3 | T3], S2 ), gramm_base(S2,S3), ListAns = [[H3 | T3]],  set_commas(S1, ListAns, Ans1),
+								find_gerund(S1, [H3 | T3], ListAns2), set_commas(Ans1, ListAns2, Ans2),															
+								find_gerund(S2,S3, ListAns3), set_commas(Ans2, ListAns3, Ans),!;
 								
 								%gramm_base(S1, [H1 | T1]), ger_ob([H1|T1], [H3|T3]), gramm_base([H3 | T3],S3), ListAns = [[H3 | T3]],!;
-								gramm_base(S1, [H2 | T2]), gramm_base([H2 | T2],S3), ListAns = [[H2 | T2]].
+								gramm_base(S1, [H2 | T2]), gramm_base([H2 | T2],S3), ListAns = [[H2 | T2]], set_commas(S1, ListAns, Ans1),
+								find_gerund(S1, [H2 | T2], ListAns2), set_commas(Ans1, ListAns2, Ans2),															
+								find_gerund([H2 | T2],S3, ListAns3), set_commas(Ans2, ListAns3, Ans),!;
+								gramm_base(S1, S3), find_gerund(S1, S3, ListAns), set_commas(S1, ListAns, Ans).
 
-test_partc(Str, Ans) :- split(Str, X),  comma_gerund(X, [], AnsList),  my_concat(AnsList, Ans).
+test_partc(Str, Ans) :- split(Str, X), /* comma_gerund(X, [], AnsList)*/  find_gramm_bases(X, [], AnsList), my_concat(AnsList, Ans).
 
 sentence(S1, S3) :- 	noun_group(S1, S2, 1), verb_group(S2, S3);
 						verb_group(S1, S2), noun_group(S2, S3, 1).	
@@ -522,7 +524,7 @@ test_sentence(Str) :- split(Str, X), sentence(X, []).
 %solve(Str, RealAns) :- split(Str, X), comma_rule(X, Ans), my_concat(Ans, RealAns).
 
 goal
-	test_partc("мальчик и дождь  выглядел смотря мультик неприятным и ветер дул", Ans).
+	test_partc("мальчик  выглядел смотря мультик неприятным", Ans).
 	%test_sentence("Холодный дождь шедший с ночи был неприятным").
 	%solve("Быки и волки всегда были врагами которые не любят друг друга но уважают", Ans).
 	
